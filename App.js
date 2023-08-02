@@ -12,7 +12,7 @@ const tileUrl = {
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
   mapServiceLayer:
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  WMS: 'https://45.249.108.79/geoserver/slrb/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&tiled=true&STYLES&LAYERS=slrb%3Adetection_features&exceptions=application%2Fvnd.ogc.se_inimage&tilesOrigin=50.42241163251137%2C25.800322768664113&WIDTH=256&HEIGHT=256&SRS=EPSG%3A4326&BBOX=50.49773273743763%2C25.990291823976162%2C50.59773273743763%2C26.090291823976162',
+  WMS: 'http://45.249.108.79/geoserver/slrb/wms?SERVICE=WMS&VERSION=1.1.0&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&tiled=true&STYLES=&LAYERS=slrb:detection_features&WIDTH=512&HEIGHT=512&srs=EPSG:3857&bbox={bbox-epsg-3857}',
   // https://45.249.108.79/geoserver/slrb/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&tiled=true&STYLES&LAYERS=detection_features&exceptions=application%2Fvnd.ogc.se_inimage&tilesOrigin=50.42241163251137%2C25.800322768664113&WIDTH=256&HEIGHT=256&SRS=EPSG%3A4326&BBOX=50.49773273743763%2C25.990291823976162%2C50.59773273743763%2C26.090291823976162
   // https://182.79.97.55/geoserver/wms?service=WMS&request=GetMap&layers=tcp:detection_features&styles=&format=image/png&transparent=true&version=1.1.0&url=/geoserver/wms&tiled=true&info_format=application/json&attributes=&wmsInfoUrl=/api/detections/10/feature/by-latlng&width=256&height=256&srs=EPSG:3857&bbox={bbox-epsg-3857}
   // https://img.nj.gov/imagerywms/Natural2015?bbox={bbox-epsg-3857}&format=image/png&service=WMS&version=1.1.1&request=GetMap&srs=EPSG:3857&transparent=true&width=256&height=256&layers=Natural2015
@@ -93,7 +93,7 @@ const App = () => {
       </View>
       <View style={styles.container}>
         <Mapbox.MapView style={styles.map}>
-          <Mapbox.RasterSource
+          {/* <Mapbox.RasterSource
             id={'mapFeaturesLayer'}
             tileSize={256}
             tileUrlTemplates={[tileUrl.mapFeaturesLayer]}>
@@ -105,7 +105,7 @@ const App = () => {
                 rasterOpacity: 1,
               }}
             />
-          </Mapbox.RasterSource>
+          </Mapbox.RasterSource> */}
           {layers.mapServiceLayer && (
             <Mapbox.RasterSource
               id={'mapServiceLayer'}
@@ -121,7 +121,7 @@ const App = () => {
               />
             </Mapbox.RasterSource>
           )}
-          {/* 
+
           <Mapbox.RasterSource
             id={'WMSLayer'}
             tileSize={256}
@@ -134,7 +134,7 @@ const App = () => {
                 rasterOpacity: 1,
               }}
             />
-          </Mapbox.RasterSource> */}
+          </Mapbox.RasterSource>
 
           {layers.geojson && (
             <Mapbox.ShapeSource id="polygonSource" shape={geojsonData}>
