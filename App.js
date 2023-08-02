@@ -6,12 +6,10 @@ import {ListItem} from 'react-native-elements';
 Mapbox.setAccessToken(
   'pk.eyJ1IjoidHJ1b25naHYxMjAyIiwiYSI6ImNsa3FpdTA5cjBscTIzc212azhiZjI0YzUifQ.idQrNB2HLK2VcV0OMz2X-w',
 );
-{
-  /* tileUrlTemplates={[
-              'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-            ]}> */
-}
+
 const tileUrl = {
+  mapFeaturesLayer:
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
   mapServiceLayer:
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   WMS: 'https://45.249.108.79/geoserver/slrb/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&tiled=true&STYLES&LAYERS=slrb%3Adetection_features&exceptions=application%2Fvnd.ogc.se_inimage&tilesOrigin=50.42241163251137%2C25.800322768664113&WIDTH=256&HEIGHT=256&SRS=EPSG%3A4326&BBOX=50.49773273743763%2C25.990291823976162%2C50.59773273743763%2C26.090291823976162',
@@ -95,6 +93,19 @@ const App = () => {
       </View>
       <View style={styles.container}>
         <Mapbox.MapView style={styles.map}>
+          <Mapbox.RasterSource
+            id={'mapFeaturesLayer'}
+            tileSize={256}
+            tileUrlTemplates={[tileUrl.mapFeaturesLayer]}>
+            <Mapbox.RasterLayer
+              id={'mapFeaturesLayer'}
+              sourceID={'mapFeaturesLayer'}
+              style={{
+                visibility: 'visible',
+                rasterOpacity: 1,
+              }}
+            />
+          </Mapbox.RasterSource>
           {layers.mapServiceLayer && (
             <Mapbox.RasterSource
               id={'mapServiceLayer'}
@@ -132,7 +143,7 @@ const App = () => {
           )}
 
           <Mapbox.Camera
-            zoomLevel={8}
+            zoomLevel={9}
             centerCoordinate={[50.54773273743763, 26.040291823976162]}
             // centerCoordinate={[-74.5447, 40.6892]}
           />
