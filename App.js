@@ -1,7 +1,12 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {StyleSheet, View, Text} from 'react-native';
 import Mapbox from '@rnmapbox/maps';
 import {ListItem} from 'react-native-elements';
+import ModalTester from './src/component/ModalTester';
+import axios from 'axios';
+import Spinner from 'react-native-loading-spinner-overlay';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {Toast} from 'react-native-toast-message/lib/src/Toast';
 
 Mapbox.setAccessToken(
   'pk.eyJ1IjoidHJ1b25naHYxMjAyIiwiYSI6ImNsa3FpdTA5cjBscTIzc212azhiZjI0YzUifQ.idQrNB2HLK2VcV0OMz2X-w',
@@ -13,18 +18,95 @@ const tileUrl = {
   mapServiceLayer:
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   WMS: 'http://45.249.108.79/geoserver/slrb/wms?SERVICE=WMS&VERSION=1.1.0&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&tiled=true&STYLES=&LAYERS=slrb:detection_features&WIDTH=512&HEIGHT=512&srs=EPSG:3857&bbox={bbox-epsg-3857}',
-  // https://45.249.108.79/geoserver/slrb/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&tiled=true&STYLES&LAYERS=detection_features&exceptions=application%2Fvnd.ogc.se_inimage&tilesOrigin=50.42241163251137%2C25.800322768664113&WIDTH=256&HEIGHT=256&SRS=EPSG%3A4326&BBOX=50.49773273743763%2C25.990291823976162%2C50.59773273743763%2C26.090291823976162
-  // https://182.79.97.55/geoserver/wms?service=WMS&request=GetMap&layers=tcp:detection_features&styles=&format=image/png&transparent=true&version=1.1.0&url=/geoserver/wms&tiled=true&info_format=application/json&attributes=&wmsInfoUrl=/api/detections/10/feature/by-latlng&width=256&height=256&srs=EPSG:3857&bbox={bbox-epsg-3857}
-  // https://img.nj.gov/imagerywms/Natural2015?bbox={bbox-epsg-3857}&format=image/png&service=WMS&version=1.1.1&request=GetMap&srs=EPSG:3857&transparent=true&width=256&height=256&layers=Natural2015
-  // https://45.249.108.79/geoserver/slrb/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&tiled=true&STYLES&LAYERS=slrb%3Adetection_features&exceptions=application%2Fvnd.ogc.se_inimage&tilesOrigin=50.42241163251137%2C25.800322768664113&WIDTH=256&HEIGHT=256&SRS=EPSG%3A4326&BBOX=50.49773273743763%2C25.990291823976162%2C50.59773273743763%2C26.090291823976162
 };
+const APIFeatureInfo = `http://45.249.108.79/api/detections/15/feature/by-latlng?lat=26.053484312712612&lng=50.49528620428978`;
 const App = () => {
   const [layers, setLayers] = useState({
     mapServiceLayer: false,
     geojson: false,
+    WMS: false,
   });
   const [expanded, setExpanded] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [listData, setlListData] = useState();
+  let data = [];
+  useEffect(() => {
+    loadStoredLayers();
+  }, []);
+  const STORAGE_KEY = 'mapLayers';
+  const loadStoredLayers = async () => {
+    try {
+      const storedLayers = await AsyncStorage.getItem(STORAGE_KEY);
+      if (storedLayers !== null) {
+        setLayers(JSON.parse(storedLayers));
+      }
+    } catch (error) {
+      console.error('Error loading layers from AsyncStorage:', error);
+    }
+  };
 
+  useEffect(() => {
+    saveLayers();
+  }, [layers]);
+
+  const saveLayers = async () => {
+    try {
+      const jsonLayers = JSON.stringify(layers);
+      await AsyncStorage.setItem(STORAGE_KEY, jsonLayers);
+    } catch (error) {
+      console.error('Error saving layers to AsyncStorage:', error);
+    }
+  };
+  const getFeatureInfo = async (lat, lng) => {
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `http://45.249.108.79/api/detections/15/feature/by-latlng?lat=${lat}&lng=${lng}`,
+      );
+      setLoading(false);
+      return response.data;
+    } catch (error) {
+      setLoading(false);
+      console.error('Error fetching feature info:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: `Error fetching feature info: ${error}.`,
+        visibilityTime: 2500,
+        autoHide: true,
+        topOffset: 30,
+        position: 'top',
+      });
+      return null;
+    }
+  };
+
+  const handleMapClick = async event => {
+    const {geometry} = event;
+    const lat = geometry.coordinates[1];
+    const lng = geometry.coordinates[0];
+
+    const featureInfo = await getFeatureInfo(lat, lng);
+    if (featureInfo !== null) {
+      setlListData(featureInfo.data);
+      setShowModal(true);
+    }
+  };
+  if (listData) {
+    data = [
+      listData.properties.change_type,
+      listData.properties.id,
+      listData.properties.aoi_name,
+      listData.properties.change_id,
+      listData.properties.grid_id,
+      listData.properties.change_between,
+      listData.properties.cloud_in_toi,
+      listData.properties.area,
+      listData.properties.building_permission,
+      listData.properties.remarks,
+    ];
+  }
   const toggleLayer = layerName => {
     setLayers(prevLayers => ({
       ...prevLayers,
@@ -61,8 +143,10 @@ const App = () => {
       <View style={styles.menuLayer}>
         <ListItem.Accordion
           content={
-            <ListItem.Content style={styles.addLayer}>
-              <ListItem.Title>Add Layer</ListItem.Title>
+            <ListItem.Content>
+              <ListItem.Title style={{fontWeight: 'bold'}}>
+                Add Layer
+              </ListItem.Title>
             </ListItem.Content>
           }
           isExpanded={expanded}
@@ -74,25 +158,55 @@ const App = () => {
             checkedIcon="checkbox-marked"
             uncheckedIcon="checkbox-blank-outline"
             title="Tile Map Service Layer"
+            checked={layers.mapServiceLayer}
             onPress={() => toggleLayer('mapServiceLayer')}
+            checkedColor="#fff"
             containerStyle={{
               backgroundColor: 'grey',
             }}
+            textStyle={{color: '#fff'}}
           />
+
           <ListItem.CheckBox
             iconType="material-community"
             checkedIcon="checkbox-marked"
             uncheckedIcon="checkbox-blank-outline"
             title="Geojson"
+            checked={layers.geojson}
             onPress={() => toggleLayer('geojson')}
+            checkedColor="#fff"
             containerStyle={{
               backgroundColor: 'grey',
             }}
+            textStyle={{color: '#fff'}}
+          />
+          <ListItem.CheckBox
+            iconType="material-community"
+            checkedIcon="checkbox-marked"
+            uncheckedIcon="checkbox-blank-outline"
+            title="WMS"
+            checked={layers.WMS}
+            onPress={() => toggleLayer('WMS')}
+            checkedColor="#fff"
+            containerStyle={{
+              backgroundColor: 'grey',
+            }}
+            textStyle={{color: '#fff'}}
           />
         </ListItem.Accordion>
       </View>
+      <Spinner visible={loading} textStyle={styles.spinnerTextStyle} />
+      <ModalTester
+        showModal={showModal}
+        setShowModal={setShowModal}
+        data={data}
+        loading={loading}
+      />
+
       <View style={styles.container}>
-        <Mapbox.MapView style={styles.map}>
+        <Mapbox.MapView
+          style={styles.map}
+          onPress={layers.WMS ? handleMapClick : ''}>
           {/* <Mapbox.RasterSource
             id={'mapFeaturesLayer'}
             tileSize={256}
@@ -121,20 +235,21 @@ const App = () => {
               />
             </Mapbox.RasterSource>
           )}
-
-          <Mapbox.RasterSource
-            id={'WMSLayer'}
-            tileSize={256}
-            tileUrlTemplates={[tileUrl.WMS]}>
-            <Mapbox.RasterLayer
+          {layers.WMS && (
+            <Mapbox.RasterSource
               id={'WMSLayer'}
-              sourceID={'WMSLayer'}
-              style={{
-                visibility: 'visible',
-                rasterOpacity: 1,
-              }}
-            />
-          </Mapbox.RasterSource>
+              tileSize={256}
+              tileUrlTemplates={[tileUrl.WMS]}>
+              <Mapbox.RasterLayer
+                id={'WMSLayer'}
+                sourceID={'WMSLayer'}
+                style={{
+                  visibility: 'visible',
+                  rasterOpacity: 1,
+                }}
+              />
+            </Mapbox.RasterSource>
+          )}
 
           {layers.geojson && (
             <Mapbox.ShapeSource id="polygonSource" shape={geojsonData}>
@@ -149,6 +264,7 @@ const App = () => {
           />
         </Mapbox.MapView>
       </View>
+      <Toast />
     </View>
   );
 };
@@ -161,6 +277,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
+
   container: {
     height: '100%',
     width: '100%',
@@ -172,7 +289,7 @@ const styles = StyleSheet.create({
     top: 0,
     right: 0,
     zIndex: 1,
-    opacity: 0.8,
+    opacity: 0.9,
   },
 
   map: {
@@ -182,5 +299,9 @@ const styles = StyleSheet.create({
   polygonFill: {
     lineColor: 'red',
     lineWidth: 3,
+  },
+
+  spinnerTextStyle: {
+    color: '#FFF',
   },
 });
