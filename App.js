@@ -7,6 +7,7 @@ import axios from 'axios';
 import Spinner from 'react-native-loading-spinner-overlay';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Toast} from 'react-native-toast-message/lib/src/Toast';
+import CheckBox1 from './src/component/CheckBox';
 
 Mapbox.setAccessToken(
   'pk.eyJ1IjoidHJ1b25naHYxMjAyIiwiYSI6ImNsa3FpdTA5cjBscTIzc212azhiZjI0YzUifQ.idQrNB2HLK2VcV0OMz2X-w',
@@ -73,10 +74,10 @@ const App = () => {
         type: 'error',
         text1: 'Error',
         text2: `Error fetching feature info: ${error}.`,
-        visibilityTime: 2500,
+        visibilityTime: 3000,
         autoHide: true,
-        topOffset: 30,
-        position: 'top',
+        bottomOffset: 20,
+        position: 'bottom',
       });
       return null;
     }

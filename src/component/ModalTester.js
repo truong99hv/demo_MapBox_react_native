@@ -1,14 +1,13 @@
-import React, {useState} from 'react';
+import React, {memo, useMemo} from 'react';
 import {Button, StyleSheet, Text, View} from 'react-native';
 import Modal from 'react-native-modal';
 
-const ModalTester = props => {
+const ModalTester = memo(props => {
   const {data, showModal, setShowModal} = props;
 
   const hideModal = () => {
     setShowModal(!showModal);
   };
-
   const headerTableList = [
     'Change Type',
     'Id',
@@ -72,7 +71,7 @@ const ModalTester = props => {
       </Modal>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   headerTable: {width: '40%'},
